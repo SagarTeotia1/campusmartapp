@@ -20,12 +20,13 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   final _confirmPasswordController = TextEditingController();
   
   late AnimationController _animationController;
+  late AnimationController _iconAnimationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _scaleAnimation;
   
   bool _isLoading = false;
   bool _agreeToTerms = false;
-  String _phoneNumber = '';
 
   @override
   void initState() {
@@ -39,12 +40,17 @@ class _RegistrationScreenState extends State<RegistrationScreen>
       vsync: this,
     );
 
+    _iconAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeInOut,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
     ));
 
     _slideAnimation = Tween<Offset>(
@@ -52,15 +58,25 @@ class _RegistrationScreenState extends State<RegistrationScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeOutCubic,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
     ));
 
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _iconAnimationController,
+      curve: Curves.elasticOut,
+    ));
+
+    _iconAnimationController.forward();
     _animationController.forward();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _iconAnimationController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
@@ -73,9 +89,25 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   void _handleRegistration() async {
     if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please agree to the Terms and Conditions'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_rounded, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Please agree to Terms and Conditions',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
         ),
       );
       return;
@@ -86,7 +118,6 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         _isLoading = true;
       });
 
-      // Simulate API call
       await Future.delayed(const Duration(seconds: 3));
 
       if (mounted) {
@@ -94,15 +125,29 @@ class _RegistrationScreenState extends State<RegistrationScreen>
           _isLoading = false;
         });
 
-        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please verify your email.'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Account created successfully!',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green.shade400,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
 
-        // Navigate back to login
         Navigator.of(context).pop();
       }
     }
@@ -110,244 +155,375 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.height < 700;
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: Colors.white,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  spreadRadius: 1,
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.arrow_back_ios_new,
-              color: AppTheme.primaryColor,
-              size: 18,
+            child: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Color(0xFF1A1A1A),
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+              padding: EdgeInsets.zero,
             ),
           ),
-          onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Create Account',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: AppTheme.primaryColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 20),
-                      
-                      // Welcome Section
-                      Center(
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    AppTheme.primaryColor,
-                                    AppTheme.accentColor,
-                                  ],
+      body: Stack(
+        children: [
+          // Background Decorations
+          Positioned(
+            top: -80,
+            right: -80,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor.withValues(alpha: 0.08),
+                    AppTheme.accentColor.withValues(alpha: 0.04),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Main Content
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: isSmallScreen ? 16 : 24,
+              ),
+              child: AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(height: isSmallScreen ? 12 : 20),
+                          
+                          // Header Section
+                          Center(
+                            child: Column(
+                              children: [
+                                AnimatedBuilder(
+                                  animation: _iconAnimationController,
+                                  builder: (context, child) {
+                                    return Transform.scale(
+                                      scale: _scaleAnimation.value,
+                                      child: Container(
+                                        width: isSmallScreen ? 70 : 85,
+                                        height: isSmallScreen ? 70 : 85,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              AppTheme.primaryColor,
+                                              AppTheme.accentColor,
+                                            ],
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                                              blurRadius: 25,
+                                              offset: const Offset(0, 8),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Icon(
+                                          Icons.person_add_rounded,
+                                          size: isSmallScreen ? 35 : 42,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryColor.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    spreadRadius: 5,
+                                SizedBox(height: isSmallScreen ? 20 : 28),
+                                Text(
+                                  'Create Account',
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 26 : 32,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1A1A1A),
+                                    letterSpacing: -0.5,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: Text(
+                                    'Join us and start your shopping journey',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.5,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                          SizedBox(height: isSmallScreen ? 28 : 36),
+                          
+                          // Form Card
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            padding: EdgeInsets.all(isSmallScreen ? 20 : 24),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  RegistrationForm(
+                                    formKey: _formKey,
+                                    firstNameController: _firstNameController,
+                                    lastNameController: _lastNameController,
+                                    emailController: _emailController,
+                                    phoneController: _phoneController,
+                                    passwordController: _passwordController,
+                                    confirmPasswordController: _confirmPasswordController,
+                                  ),
+                                  
+                                  SizedBox(height: isSmallScreen ? 16 : 20),
+                                  
+                                  // Terms Checkbox
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _agreeToTerms 
+                                          ? AppTheme.primaryColor.withValues(alpha: 0.3)
+                                          : Colors.grey.shade200,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: Checkbox(
+                                            value: _agreeToTerms,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                _agreeToTerms = value ?? false;
+                                              });
+                                            },
+                                            activeColor: AppTheme.primaryColor,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(5),
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.grey.shade400,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(top: 2),
+                                            child: RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey.shade700,
+                                                  height: 1.5,
+                                                ),
+                                                children: [
+                                                  const TextSpan(text: 'I agree to the '),
+                                                  TextSpan(
+                                                    text: 'Terms of Service',
+                                                    style: TextStyle(
+                                                      color: AppTheme.primaryColor,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  const TextSpan(text: ' and '),
+                                                  TextSpan(
+                                                    text: 'Privacy Policy',
+                                                    style: TextStyle(
+                                                      color: AppTheme.primaryColor,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  
+                                  SizedBox(height: isSmallScreen ? 24 : 28),
+                                  
+                                  // Register Button
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          AppTheme.primaryColor,
+                                          AppTheme.accentColor,
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: _isLoading ? null : _handleRegistration,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 18),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      child: _isLoading
+                                        ? const SizedBox(
+                                            height: 22,
+                                            width: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                'Create Account',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Icon(
+                                                Icons.arrow_forward_rounded,
+                                                size: 20,
+                                              ),
+                                            ],
+                                          ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.person_add,
-                                size: 40,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'Join Crazypeeps!',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Create your account to get started',
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.grey.shade600,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Registration Form
-                      RegistrationForm(
-                        formKey: _formKey,
-                        firstNameController: _firstNameController,
-                        lastNameController: _lastNameController,
-                        emailController: _emailController,
-                        phoneController: _phoneController,
-                        passwordController: _passwordController,
-                        confirmPasswordController: _confirmPasswordController,
-                        onPhoneChanged: (value) {
-                          setState(() {
-                            _phoneNumber = value;
-                          });
-                        },
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Terms and Conditions Checkbox
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: _agreeToTerms,
-                            onChanged: (value) {
-                              setState(() {
-                                _agreeToTerms = value ?? false;
-                              });
-                            },
-                            activeColor: AppTheme.primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
                             ),
                           ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: RichText(
-                                text: TextSpan(
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          
+                          SizedBox(height: isSmallScreen ? 24 : 32),
+                          
+                          // Sign In Link
+                          Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Already have an account?  ',
+                                  style: TextStyle(
+                                    fontSize: 14,
                                     color: Colors.grey.shade600,
-                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
                                   ),
-                                  children: [
-                                    const TextSpan(text: 'I agree to the '),
-                                    TextSpan(
-                                      text: 'Terms and Conditions',
-                                      style: TextStyle(
-                                        color: AppTheme.primaryColor,
-                                        fontWeight: FontWeight.w600,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                    const TextSpan(text: ' and '),
-                                    TextSpan(
-                                      text: 'Privacy Policy',
-                                      style: TextStyle(
-                                        color: AppTheme.primaryColor,
-                                        fontWeight: FontWeight.w600,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                              ),
+                                GestureDetector(
+                                  onTap: () => Navigator.of(context).pop(),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: AppTheme.primaryColor,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          
+                          const SizedBox(height: 20),
                         ],
                       ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Register Button
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _handleRegistration,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : Text(
-                              'Create Account',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Login Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Already have an account? ',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Text(
-                              'Sign In',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
